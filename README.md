@@ -46,7 +46,10 @@ git clone https://github.com/GemimaOndele/Projet-Deep-Learning.git
 cd Projet-Deep-Learning
 
 
-**Détails du projet **
+
+
+
+###**Détails du projet **
 
 # Projet-Deep-Learning
 

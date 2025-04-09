@@ -24,6 +24,8 @@ data = pd.read_csv("creditcard.csv")
 X = data.drop(["Class"], axis=1)
 y = data["Class"]
 
+#Mise à l'échelle
+
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
@@ -52,11 +54,30 @@ best_model = tuner.get_best_models(num_models=1)[0]
 
 # 4. Évaluation
 predictions = (best_model.predict(X_test) > 0.5).astype("int32")
-print(confusion_matrix(y_test, predictions))
-print(classification_report(y_test, predictions))
-print("ROC-AUC Score:", roc_auc_score(y_test, predictions))
 
-# Courbe ROC
+# Matrice de confusion
+cm = confusion_matrix(y_test, predictions)
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=[0, 1], yticklabels=[0, 1])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Matrice de Confusion")
+plt.show()
+
+# Rapport de classification
+print(classification_report(y_test, predictions))
+report = classification_report(y_test, predictions, output_dict=True)
+df_report = pd.DataFrame(report).transpose()
+
+plt.figure(figsize=(8, 5))
+sns.barplot(x=df_report.index, y="f1-score", data=df_report.reset_index())
+plt.title("F1-Score par classe")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# ROC AUC
+print("ROC-AUC Score:", roc_auc_score(y_test, predictions))
 fpr, tpr, thresholds = roc_curve(y_test, predictions)
 plt.plot(fpr, tpr, label='ROC Curve')
 plt.xlabel('False Positive Rate')
@@ -65,7 +86,11 @@ plt.title('ROC Curve')
 plt.legend()
 plt.show()
 
-# 5. Interprétabilité (SHAP)
-explainer = shap.Explainer(best_model, X_train[:100].astype(np.float32))
-shap_values = explainer(X_test[:10].astype(np.float32))
-shap.plots.waterfall(shap_values[0])
+# 5. Interprétabilité avec SHAP
+try:
+    X_sample = X_test[:100]
+    explainer = shap.Explainer(best_model.predict, X_sample.astype(np.float32))
+    shap_values = explainer(X_sample.astype(np.float32))
+    shap.plots.waterfall(shap_values[0])
+except Exception as e:
+    print("Erreur avec SHAP:", e)

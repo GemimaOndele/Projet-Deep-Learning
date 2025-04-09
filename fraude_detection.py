@@ -94,3 +94,9 @@ try:
     shap.plots.waterfall(shap_values[0])
 except Exception as e:
     print("Erreur avec SHAP:", e)
+
+# 6. Exporter le modèle pour TensorFlow Serving
+model_path = "export_model/1"  # TensorFlow Serving attend une version (ici "1")
+best_model.save(model_path)
+print(f"Modèle exporté dans : {model_path}")
+

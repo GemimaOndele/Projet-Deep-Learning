@@ -1,116 +1,150 @@
-# 💳 Détection de Fraude sur les Transactions Bancaires
+# 💳 Projet Deep Learning – Détection de Fraude Bancaire
 
-Ce projet a pour objectif de détecter les fraudes sur les transactions bancaires en utilisant des modèles de Deep Learning (MLP, GRU, LSTM) et un déploiement en production avec **TensorFlow Serving** via **Docker** et **Render**.
-
----
-
-## 📊 Dataset utilisé
-
-- **Nom** : creditcard.csv
-- **Taille** : ~144 MB
-- **Source** : Transactions réelles (anonymisées)
-- **Caractéristiques** :
-  - 30 colonnes d'entrée (V1, V2, ..., V28, Amount, Time)
-  - Colonne cible : `Class` (0 = transaction normale, 1 = fraude)
+Ce projet a pour objectif de détecter des transactions bancaires frauduleuses en utilisant des techniques de Machine Learning et de Deep Learning, avec un **déploiement en temps réel** grâce à **TensorFlow Serving** et **Docker**, hébergé sur **Render**.
 
 ---
 
-## ⚙️ Étapes du projet
+## 📁 Structure du Projet
 
-1. **Chargement et analyse exploratoire du dataset**
-2. **Prétraitement des données** :
-   - Normalisation avec `StandardScaler`
-   - Rééquilibrage avec **SMOTE**
-   - Séparation des données (80% train / 20% test)
-3. **Modélisation Deep Learning** :
-   - Modèle dense MLP avec `Keras Tuner`
-   - Modèle LSTM
-   - Modèle GRU
-4. **Évaluation** :
-   - Matrice de confusion
-   - Classification report
-   - Courbe ROC
-   - Score ROC AUC
-   - Interprétation des résultats avec **SHAP**
-5. **Déploiement** :
-   - Export du modèle au format TensorFlow Serving
-   - Conteneurisation avec **Docker**
-   - Déploiement cloud avec **Render**
+```bash
+Projet-Deep-Learning/
+│
+├── creditcard.csv              # Données initiales (non push sur GitHub)
+├── fraude_detection.py         # Modèle de base (MLP) avec visualisations
+├── fraude_detection_lstm.py    # Modèle avec LSTM (séries temporelles)
+├── fraude_detection_gru.py     # Modèle avec GRU
+├── client.py                   # Script de test de l'API en ligne
+├── Dockerfile                  # Pour Docker + TensorFlow Serving
+├── export_model/               # Modèle MLP exporté pour déploiement
+├── export_lstm_model/          # Modèle LSTM exporté
+├── export_gru_model/           # Modèle GRU exporté
+└── README.md                   # Ce fichier
 
----
+🧠 Méthodologie
+1. Préparation des données
+Dataset : creditcard.csv
 
-## 🧠 Modèles testés
+Standardisation avec StandardScaler
 
-| Modèle | Accuracy | ROC AUC |
-|--------|----------|---------|
-| MLP (dense) | ~99.9% | 0.9996 |
-| GRU | ~99.9% | 0.9995 |
-| LSTM | ~99.9% | 0.9996 |
+Rééquilibrage des classes via SMOTE
 
----
+2. Split des données
+80% pour l'entraînement
 
-## 🚀 Déploiement API (Render)
+20% pour le test
 
-- Le modèle est déployé avec **TensorFlow Serving** via Docker
-- Accès via une API REST :
-  ```bash
-  POST https://projet-deep-learning.onrender.com/v1/models/fraude_model:predict
-Exemple d’appel (client Python) :
+🧪 Modélisation
+✅ Modèle MLP (Multi-Layer Perceptron)
+Tuné avec KerasTuner (Random Search)
 
-python
-Copier
-Modifier
-import requests
+Sauvegarde avec best_model.save(...)
+
+Visualisation : matrice de confusion, courbe ROC, SHAP
+
+✅ Modèle LSTM
+Capture les relations temporelles entre les transactions
+
+Utilisation de return_sequences=True pour empiler plusieurs couches
+
+✅ Modèle GRU
+Similaire à LSTM, plus léger, parfois plus rapide
+
+Bonne performance sur les séquences
+
+📊 Visualisations incluses
+Matrice de confusion
+
+Classification report (f1-score par classe)
+
+Courbe ROC
+
+Graphique SHAP pour interprétation des prédictions
+
+🐳 Docker & TensorFlow Serving
+Objectif :
+Déployer le modèle comme API REST accessible depuis le cloud.
+
+Étapes :
+Export du modèle :
+best_model.export("export_model/1")
+
+Dockerfile :
+
+FROM tensorflow/serving
+COPY export_model /models/fraude_model
+ENV MODEL_NAME=fraude_model
+
+Build Docker :
+docker build -t fraude-serving .
+
+Lancer en local (optionnel) :
+docker run -p 8501:8501 fraude-serving
+
+🌍 Déploiement Cloud (Render)
+Nous avons utilisé Render (https://render.com) pour exposer le modèle sur le web.
+
+➡️ L’API est accessible via :
+
+https://projet-deep-learning.onrender.com/v1/models/fraude_model:predict
+
+⚠️ Render Free s’endort après inactivité → 1ère requête peut prendre 50 sec.
+
+🧪 Tester l’API (client.py)
+
 import json
+import requests
 import numpy as np
 
-url = "https://projet-deep-learning.onrender.com/v1/models/fraude_model:predict"
-data = {
-    "instances": [[[0.1, 0.2, ..., 0.3]]]  # Format GRU/LSTM : shape (1, 1, 30)
+# Exemple de transaction (à adapter selon tes colonnes)
+example = np.random.rand(30).astype(np.float32)
+
+# Reshape en (1, 1, 30)
+payload = {
+    "instances": example.reshape(1, 1, 30).tolist()
 }
 
-response = requests.post(url, json=data)
-print(response.json())
-🐳 Dockerfile utilisé
-dockerfile
-Copier
-Modifier
-FROM tensorflow/serving
-COPY export_gru_model /models/fraude_model
-ENV MODEL_NAME=fraude_model
-💻 Lancer en local (optionnel)
-bash
-Copier
-Modifier
-docker run -p 8501:8501 \
-  --name fraude_model_serving \
-  --mount type=bind,source=$(pwd)/export_gru_model,target=/models/fraude_model \
-  -e MODEL_NAME=fraude_model \
-  -t tensorflow/serving
-👥 Travail collaboratif
-Projet réalisé en groupe dans le cadre d'un cours de Deep Learning.
-Chaque membre a contribué aux parties : nettoyage, modélisation, tuning, interprétation, et déploiement.
+RENDER_URL = "https://projet-deep-learning.onrender.com/v1/models/fraude_model:predict"
 
-📂 Arborescence du projet
-bash
-Copier
-Modifier
-fraude_project/
-│
-├── creditcard.csv
-├── fraude_detection.py              # MLP + SHAP
-├── fraude_detection_lstm.py        # Modèle LSTM
-├── fraude_detection_gru.py         # Modèle GRU
-├── client.py                       # Exemple appel API
-├── Dockerfile                      # Déploiement Render
-├── export_model/                   # MLP SavedModel
-├── export_lstm_model/              # LSTM SavedModel
-├── export_gru_model/               # GRU SavedModel
-└── README.md
-📈 Résultats finaux
-Précision du modèle très élevée (presque 100%)
+response = requests.post(RENDER_URL, json=payload)
 
-Modèles robustes sur données rééquilibrées
+print("Résultat de l'API :")
+print(json.dumps(response.json(), indent=2))
 
-API en production disponible sur Render 🚀
+🔁 À quoi sert Docker ?
+Crée un environnement portable et isolé
 
+Facilite le déploiement rapide du modèle
+
+Permet l’intégration avec TensorFlow Serving
+
+Rendu compatible avec le cloud (Render, GCP, AWS)
+
+☁️ Pourquoi déployer sur le cloud ?
+Permet de rendre le modèle accessible en temps réel
+
+Utile pour des systèmes embarqués ou applications web
+
+Possibilité de faire des requêtes automatiques (API)
+
+Scalabilité facile à grande échelle
+
+🎯 Fonctionnement global
+Chaque ligne représente une transaction.
+
+Le modèle prédit 0 (normale) ou 1 (fraude).
+
+Les résultats sont affichés dans les graphiques et peuvent être testés via l’API.
+
+👥 Projet en groupe
+L’un des membres héberge le modèle sur Render.
+
+Tous les autres peuvent tester l’API en appelant l’URL dans client.py.
+
+Le dépôt GitHub contient tous les fichiers nécessaires.
+
+✨ Résultat
+Précision du modèle : ~99.9%
+
+ROC-AUC Score : ~0.999
+
+Déploiement complet sur le web, avec tests en temps réel.

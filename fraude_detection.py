@@ -15,6 +15,8 @@ from tensorflow.keras import layers
 from keras_tuner.tuners import RandomSearch
 import shap
 import warnings
+import os
+import json
 warnings.filterwarnings("ignore")
 
 # 1. Chargement du dataset
@@ -24,14 +26,14 @@ data = pd.read_csv("creditcard.csv")
 X = data.drop(["Class"], axis=1)
 y = data["Class"]
 
-#Mise à l'échelle
-
+# Mise à l'échelle
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 sm = SMOTE(random_state=42)
 X_res, y_res = sm.fit_resample(X_scaled, y)
 
+# Séparation 80/20
 X_train, X_test, y_train, y_test = train_test_split(X_res, y_res, test_size=0.2, random_state=42)
 
 # 3. Modélisation
@@ -97,6 +99,7 @@ except Exception as e:
 
 # 6. Exporter le modèle pour TensorFlow Serving
 model_path = "export_model/1"  # TensorFlow Serving attend une version (ici "1")
-best_model.save(model_path)
+os.makedirs(model_path, exist_ok=True)
+best_model.export(model_path)
 print(f"Modèle exporté dans : {model_path}")
 

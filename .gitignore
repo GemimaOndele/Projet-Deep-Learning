@@ -3,3 +3,6 @@ tuner/
 __pycache__/
 *.pyc
 .DS_Store
+export_model/
+export_gru_model/
+export_lstm_model/
